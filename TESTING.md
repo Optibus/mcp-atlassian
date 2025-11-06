@@ -22,7 +22,7 @@ Execute each test case below and report:
 
 ## Safe Read-Only Tests
 
-Run these first to verify connectivity without modifying data:
+Run these first to verify connectivity without modifying data. These tests use the **tools-only interface** and are completely safe to run in any environment.
 
 ### 1. Server Connection & Discovery
 
@@ -34,14 +34,14 @@ List all MCP tools available from the Atlassian server
 
 **Expected Result:**
 
-- Should return 32 tools
+- Should return 31 tools (all tools-based, no resources)
 - Tools should include: getPage, listPages, getIssue, listIssues, createIssue, etc.
 
 ---
 
-### 2. Jira Read Operations
+### 2. Jira Read Operations - Projects
 
-#### 2.1 List Projects
+#### 2.1 List All Projects
 
 **Test:** Get all accessible Jira projects
 
@@ -51,10 +51,11 @@ Use the listProjects tool to show all Jira projects I have access to
 
 **Expected Result:**
 
-- List of projects with keys, names, and leads
+- List of projects with keys, names, and project leads
 - At least one project should be visible
+- Each project should have a key (e.g., "OPS", "DEV")
 
-#### 2.2 Get Project Details
+#### 2.2 Get Project by Key
 
 **Test:** Get details for a specific project
 
@@ -64,10 +65,28 @@ Use the getProject tool to get details for project [PROJECT_KEY]
 
 **Expected Result:**
 
-- Project name, description, type, lead information
-- Project URL
+- Project name, description, type (software/business)
+- Project lead information
+- Project URL and key
 
-#### 2.3 List Issues
+#### 2.3 List Projects with Type Filter
+
+**Test:** Filter projects by type
+
+```
+Use listProjects tool with type parameter set to "software"
+```
+
+**Expected Result:**
+
+- Only software projects returned
+- No business projects in results
+
+---
+
+### 3. Jira Read Operations - Issues
+
+#### 3.1 List Issues in Project
 
 **Test:** Search for issues in a project
 
@@ -81,7 +100,7 @@ Use listIssues to find the first 5 issues in project [PROJECT_KEY]
 - Issue assignees and creation dates
 - URLs to view issues
 
-#### 2.4 Get Issue Details
+#### 3.2 Get Issue by Key
 
 **Test:** Get full details of a specific issue
 
@@ -94,12 +113,83 @@ Use getIssue tool to get details for issue [ISSUE_KEY]
 - Full issue details including description
 - Status, assignee, reporter
 - Comments and transitions available
+- Issue type and priority
+
+#### 3.3 List Issues with JQL
+
+**Test:** Use JQL to search issues
+
+```
+Use listIssues with jql parameter:
+"project = [PROJECT_KEY] AND status = Open ORDER BY created DESC"
+```
+
+**Expected Result:**
+
+- Only open issues from the specified project
+- Sorted by creation date (newest first)
+
+#### 3.4 List Issues with Status Filter
+
+**Test:** Filter issues by status
+
+```
+Use listIssues with project [PROJECT_KEY] and status "In Progress"
+```
+
+**Expected Result:**
+
+- Only issues with "In Progress" status
+- All from specified project
+
+#### 3.5 List Issues with Assignee Filter
+
+**Test:** Find issues assigned to specific user
+
+```
+Use listIssues with assignee parameter set to user email
+```
+
+**Expected Result:**
+
+- Only issues assigned to that user
+- Across all accessible projects
+
+#### 3.6 List Issues with Pagination
+
+**Test:** Test pagination parameters
+
+```
+Use listIssues with:
+- project: [PROJECT_KEY]
+- limit: 10
+- startAt: 0
+```
+
+**Expected Result:**
+
+- Maximum 10 issues returned
+- First page of results
+
+#### 3.7 Get Issue Transitions
+
+**Test:** View available workflow transitions
+
+```
+Use getIssue for [ISSUE_KEY] and examine the transitions field
+```
+
+**Expected Result:**
+
+- List of available transitions (e.g., "In Progress", "Done")
+- Transition IDs for each available transition
+- Current status shown
 
 ---
 
-### 3. Confluence Read Operations
+### 4. Confluence Read Operations - Spaces
 
-#### 3.1 List Spaces
+#### 4.1 List All Spaces
 
 **Test:** Get all Confluence spaces
 
@@ -111,8 +201,9 @@ Use listSpaces tool to show all Confluence spaces
 
 - List of spaces with IDs, keys, names
 - Space types (global/personal)
+- At least one space visible
 
-#### 3.2 Get Space Details
+#### 4.2 Get Space by ID
 
 **Test:** Get details for a specific space
 
@@ -124,21 +215,104 @@ Use getSpace tool with spaceId [SPACE_ID]
 
 - Space name, key, type
 - Description and homepage info
+- Space ID matches request
 
-#### 3.3 List Pages
+#### 4.3 List Spaces with Type Filter
 
-**Test:** List pages in a space
+**Test:** Filter spaces by type
 
 ```
-Use listPages tool with spaceId [SPACE_ID] to show pages
+Use listSpaces with type parameter set to "global"
 ```
 
 **Expected Result:**
 
-- Array of pages with titles and IDs
-- Page status and URLs
+- Only global spaces returned
+- No personal spaces in results
 
-#### 3.4 Get Page Content
+#### 4.4 List Spaces with Status Filter
+
+**Test:** Filter spaces by status
+
+```
+Use listSpaces with status parameter set to "current"
+```
+
+**Expected Result:**
+
+- Only current (non-archived) spaces
+- No archived spaces in results
+
+#### 4.5 List Spaces with Pagination
+
+**Test:** Test pagination
+
+```
+Use listSpaces with limit set to 5
+```
+
+**Expected Result:**
+
+- Maximum 5 spaces returned
+- Cursor provided if more spaces exist
+
+---
+
+### 5. Confluence Read Operations - Pages
+
+#### 5.1 List All Pages
+
+**Test:** List pages without filters
+
+```
+Use listPages tool to show pages (no filters)
+```
+
+**Expected Result:**
+
+- Array of pages from all accessible spaces
+- Page titles, IDs, and space information
+
+#### 5.2 List Pages in Space
+
+**Test:** List pages filtered by space
+
+```
+Use listPages tool with spaceId [SPACE_ID]
+```
+
+**Expected Result:**
+
+- Only pages from specified space
+- Page status and URLs included
+
+#### 5.3 List Pages by Title
+
+**Test:** Search pages by title
+
+```
+Use listPages with title parameter "Getting Started"
+```
+
+**Expected Result:**
+
+- Pages matching or containing that title
+- Partial matches included
+
+#### 5.4 List Pages by Status
+
+**Test:** Filter pages by status
+
+```
+Use listPages with status "current"
+```
+
+**Expected Result:**
+
+- Only current (non-archived, non-deleted) pages
+- No draft or archived pages
+
+#### 5.5 Get Page by ID
 
 **Test:** Get full content of a page
 
@@ -151,6 +325,216 @@ Use getPage tool with pageId [PAGE_ID]
 - Page title, body content (in storage format)
 - Version information
 - Creation and update dates
+- Author information
+
+#### 5.6 Get Page with Different Body Formats
+
+**Test:** Request page in different formats
+
+```
+Use getPage with:
+- pageId: [PAGE_ID]
+- bodyFormat: "storage"
+```
+
+**Expected Result:**
+
+- Page content in Confluence storage format (XML-like HTML)
+- All macros and structured content preserved
+
+#### 5.7 List Pages with Pagination
+
+**Test:** Test pagination for pages
+
+```
+Use listPages with:
+- spaceId: [SPACE_ID]
+- limit: 10
+```
+
+**Expected Result:**
+
+- Maximum 10 pages returned
+- Cursor for next page if more exist
+
+---
+
+### 6. Advanced Read-Only Scenarios
+
+#### 6.1 Multi-Project Issue Search
+
+**Test:** Search across multiple projects
+
+```
+Use listIssues with JQL:
+"project in ([PROJECT1], [PROJECT2]) AND created >= -30d"
+```
+
+**Expected Result:**
+
+- Issues from both projects
+- Only from last 30 days
+- Combined results
+
+#### 6.2 Complex JQL Query
+
+**Test:** Advanced JQL with multiple conditions
+
+```
+Use listIssues with JQL:
+"project = [PROJECT_KEY] AND status != Done AND assignee is not EMPTY ORDER BY priority DESC, updated DESC"
+```
+
+**Expected Result:**
+
+- Unfinished issues with assignees
+- Sorted by priority, then update date
+
+#### 6.3 Search Issues by Labels
+
+**Test:** Find issues with specific labels
+
+```
+Use listIssues with JQL:
+"project = [PROJECT_KEY] AND labels = urgent"
+```
+
+**Expected Result:**
+
+- Only issues tagged with "urgent" label
+- From specified project
+
+#### 6.4 Search Recent Updates
+
+**Test:** Find recently updated issues
+
+```
+Use listIssues with JQL:
+"updated >= -7d ORDER BY updated DESC"
+limit: 20
+```
+
+**Expected Result:**
+
+- Issues updated in last 7 days
+- Sorted newest first
+- Maximum 20 results
+
+#### 6.5 Confluence Page Hierarchy
+
+**Test:** Navigate page hierarchy
+
+```
+1. Use listPages to find a parent page in space
+2. Use getPage to view its details
+3. Check for child pages in the structure
+```
+
+**Expected Result:**
+
+- Parent page details visible
+- Child page references if any exist
+- Hierarchical structure clear
+
+#### 6.6 Cross-Reference Pages and Spaces
+
+**Test:** Find pages across multiple spaces
+
+```
+1. Use listSpaces to get multiple space IDs
+2. Use listPages for each space
+3. Compare results
+```
+
+**Expected Result:**
+
+- Pages organized by space
+- Each space's pages isolated
+- No cross-contamination
+
+---
+
+### 7. Error Handling & Edge Cases (Read-Only)
+
+#### 7.1 Invalid Project Key
+
+**Test:** Request non-existent project
+
+```
+Use getProject with projectKey "INVALID-XXX"
+```
+
+**Expected Result:**
+
+- Error message indicating project not found
+- 404 or appropriate error code
+
+#### 7.2 Invalid Issue Key
+
+**Test:** Request non-existent issue
+
+```
+Use getIssue with issueKey "INVALID-999999"
+```
+
+**Expected Result:**
+
+- Error message indicating issue not found
+- Clear error response
+
+#### 7.3 Invalid Space ID
+
+**Test:** Request non-existent space
+
+```
+Use getSpace with spaceId "999999999"
+```
+
+**Expected Result:**
+
+- Error message indicating space not found
+- Appropriate error handling
+
+#### 7.4 Invalid Page ID
+
+**Test:** Request non-existent page
+
+```
+Use getPage with pageId "999999999"
+```
+
+**Expected Result:**
+
+- Error message indicating page not found
+- Clear error response
+
+#### 7.5 Empty Result Sets
+
+**Test:** Search with no matches
+
+```
+Use listIssues with JQL:
+"project = [PROJECT_KEY] AND summary ~ 'XYZABC123NOTFOUND'"
+```
+
+**Expected Result:**
+
+- Empty array returned
+- No errors thrown
+- Graceful handling
+
+#### 7.6 Permission Denied Scenarios
+
+**Test:** Access restricted resource (if applicable)
+
+```
+Try to access a project/space you don't have permission to view
+```
+
+**Expected Result:**
+
+- 403 Forbidden error
+- Clear permission denied message
 
 ---
 
@@ -328,32 +712,78 @@ Use listIssues with custom JQL:
 ```
 Date: [DATE]
 Tester: Cursor AI
-MCP Server Version: 2.2.0
+MCP Server Version: 3.0.1
+Interface: Tools-Only (No Resources)
 
 Results:
-1. Server Connection: [✅/❌]
-2. Jira Read Operations: [✅/❌]
-   - listProjects: [✅/❌]
-   - getProject: [✅/❌]
-   - listIssues: [✅/❌]
-   - getIssue: [✅/❌]
-3. Confluence Read Operations: [✅/❌]
-   - listSpaces: [✅/❌]
-   - getSpace: [✅/❌]
-   - listPages: [✅/❌]
-   - getPage: [✅/❌]
-4. Jira Write Operations: [✅/❌]
+
+1. Server Connection & Discovery: [✅/❌]
+   - List all tools: [✅/❌]
+   - Tool count (expected ~31): [ACTUAL COUNT]
+
+2. Jira Read Operations - Projects: [✅/❌]
+   - listProjects (all): [✅/❌]
+   - getProject (by key): [✅/❌]
+   - listProjects (with filters): [✅/❌]
+
+3. Jira Read Operations - Issues: [✅/❌]
+   - listIssues (basic): [✅/❌]
+   - getIssue (by key): [✅/❌]
+   - listIssues (with JQL): [✅/❌]
+   - listIssues (with filters): [✅/❌]
+   - listIssues (with pagination): [✅/❌]
+   - Get issue transitions: [✅/❌]
+
+4. Confluence Read Operations - Spaces: [✅/❌]
+   - listSpaces (all): [✅/❌]
+   - getSpace (by ID): [✅/❌]
+   - listSpaces (with filters): [✅/❌]
+   - listSpaces (with pagination): [✅/❌]
+
+5. Confluence Read Operations - Pages: [✅/❌]
+   - listPages (all): [✅/❌]
+   - listPages (by space): [✅/❌]
+   - listPages (by title): [✅/❌]
+   - listPages (by status): [✅/❌]
+   - getPage (by ID): [✅/❌]
+   - getPage (different formats): [✅/❌]
+   - listPages (with pagination): [✅/❌]
+
+6. Advanced Read-Only Scenarios: [✅/❌]
+   - Multi-project searches: [✅/❌]
+   - Complex JQL queries: [✅/❌]
+   - Label-based searches: [✅/❌]
+   - Recent updates queries: [✅/❌]
+   - Page hierarchy navigation: [✅/❌]
+
+7. Error Handling & Edge Cases: [✅/❌]
+   - Invalid project key: [✅/❌]
+   - Invalid issue key: [✅/❌]
+   - Invalid space ID: [✅/❌]
+   - Invalid page ID: [✅/❌]
+   - Empty result sets: [✅/❌]
+   - Permission denied (if applicable): [✅/❌]
+
+8. Jira Write Operations: [✅/❌]
    - createIssue: [✅/❌]
    - updateIssue: [✅/❌]
    - transitionIssue: [✅/❌]
-5. Confluence Write Operations: [✅/❌]
+
+9. Confluence Write Operations: [✅/❌]
    - createPage: [✅/❌]
    - updatePage: [✅/❌]
    - addComment: [✅/❌]
-6. Advanced Operations: [✅/❌]
+
+10. Advanced Write Operations: [✅/❌]
+    - Filter management: [✅/❌]
+    - Sprint operations: [✅/❌]
+    - Dashboard management: [✅/❌]
 
 Overall Status: [PASS/FAIL]
+Read-Only Tests: [X/42 passed]
+Write Tests: [X/Y passed]
 Notes: [Any issues or observations]
+Architecture: Tools-only interface verified ✓
 ```
 
 ## Common Issues
@@ -382,14 +812,28 @@ Notes: [Any issues or observations]
 
 ## ✅ Quick Smoke Test (SAFE - Read-Only)
 
-For a rapid sanity check without modifying anything, run these 4 commands:
+For a rapid sanity check without modifying anything, run these commands:
 
-1. `List all available Atlassian MCP tools`
-2. `Use listProjects to show Jira projects`
-3. `Use listSpaces to show Confluence spaces`
-4. `Use listIssues to find 3 issues in any project`
+1. **Tool Discovery**: `List all available Atlassian MCP tools`
+   - Expected: ~31 tools returned
+2. **Jira Projects**: `Use listProjects to show Jira projects`
+   - Expected: List of accessible projects
+3. **Jira Issues**: `Use listIssues to find 3 issues in any project`
+   - Expected: Array of issues with keys and summaries
+4. **Confluence Spaces**: `Use listSpaces to show Confluence spaces`
+   - Expected: List of spaces with IDs and keys
+5. **Confluence Pages**: `Use listPages with a space ID to show pages`
 
-**These are READ-ONLY and safe to run in production.** If all 4 succeed, the server is working. ✅
+   - Expected: Array of pages in that space
+
+6. **Get Details**: `Use getIssue to get details for any issue key`
+
+   - Expected: Full issue details including status and assignee
+
+7. **Get Page**: `Use getPage to get details for any page ID`
+   - Expected: Page content and metadata
+
+**These are READ-ONLY and safe to run in production.** If all succeed, the server is working correctly. ✅
 
 ---
 

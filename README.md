@@ -35,7 +35,7 @@ This is a **massively vibe-coded monster Frankenstein** based on [phuc-nt/mcp-at
 
 It works. _Mostly_. Sometimes. Usually when you need it to. Probably.
 
-Features were added, bugs were fixed (and introduced), code was refactored, un-refactored, then refactored differently. The logger exploded, got duct-taped, then optimized. Resources became tools. Tools became the primary interface. The primary interface is now questioning its life choices. Everything is fine. 🔥
+Features were added, bugs were fixed (and introduced), code was refactored, un-refactored, then refactored differently. The logger exploded, got duct-taped, then optimized. Resources were removed. Tools became the only interface. The codebase is cleaner. Everything is fine. 🔥
 
 **Tools available:** 32 (we counted, twice, got different answers both times)
 

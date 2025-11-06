@@ -170,34 +170,3 @@ export function withErrorHandling<T>(fn: () => Promise<T>): Promise<T> {
     throw handleAtlassianError(error);
   });
 }
-
-/**
- * Higher-order function that wraps a resource handler with error handling
- * @param resourceName Name of the resource for logging purposes
- * @param handler Resource handler function to wrap
- * @returns Wrapped handler function with error handling
- */
-export function wrapResourceWithErrorHandling<T, P>(
-  resourceName: string,
-  handler: (params: P) => Promise<T>
-): (params: P) => Promise<T> {
-  return async (params: P): Promise<T> => {
-    try {
-      return await handler(params);
-    } catch (error) {
-      logger.error(`Error in resource ${resourceName}:`, error);
-      
-      // Convert to ApiError if not already
-      const apiError = error instanceof ApiError 
-        ? error 
-        : new ApiError(
-            ApiErrorType.RESOURCE_ERROR,
-            `Error processing resource ${resourceName}: ${error instanceof Error ? error.message : String(error)}`,
-            500,
-            error instanceof Error ? error : new Error(String(error))
-          );
-          
-      throw apiError;
-    }
-  };
-} 

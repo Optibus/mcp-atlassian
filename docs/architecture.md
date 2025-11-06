@@ -6,15 +6,13 @@ MCP Atlassian Server is a Model Context Protocol (MCP) server that connects AI a
 
 ## Core Concepts
 
-### Tools vs Resources
+### Tools
 
-The server exposes two types of interfaces:
+The server exposes a **tools-only interface** for interacting with Atlassian services.
 
-#### Tools (Primary Interface)
+**Tools** are action-oriented commands that perform operations or retrieve data.
 
-**Tools** are action-oriented commands that perform operations or retrieve data. They are the **primary and recommended** interface for interacting with the server.
-
-**Why Tools Are Preferred:**
+**Why Tools:**
 
 - **Better LLM Discovery**: Tools appear in a simple flat list with clear names
 - **Intuitive Usage**: Direct parameter passing without URI construction
@@ -32,35 +30,12 @@ The server exposes two types of interfaces:
    - Confluence: `createPage`, `updatePage`, `updatePageTitle`, `deletePage`, `addComment`, `updateFooterComment`, `deleteFooterComment`
    - Jira: `createIssue`, `updateIssue`, `transitionIssue`, `assignIssue`, `createFilter`, `updateFilter`, `deleteFilter`, `createSprint`, `startSprint`, `closeSprint`, `addIssueToSprint`, `addIssuesToBacklog`, `rankBacklogIssues`, `createDashboard`, `updateDashboard`, `addGadgetToDashboard`, `removeGadgetFromDashboard`
 
-#### Resources (Legacy Interface)
-
-**Resources** are URI-based read-only data access points maintained for backward compatibility.
-
-**Resource Pattern:**
-
-```
-confluence://pages/{pageId}
-jira://issues/{issueKey}
-```
-
-Resources require understanding URI templates and construction, making them less intuitive for LLMs.
-
-### Example: Tools vs Resources
+### Example: Using Tools
 
 **Getting a Confluence Page:**
 
-Using Tools (Recommended):
-
 ```typescript
 getPage({ pageId: "2771255297" });
-```
-
-Using Resources (Legacy):
-
-```typescript
-// 1. Discover: list_mcp_resources
-// 2. Construct: confluence://pages/2771255297
-// 3. Fetch: fetch_mcp_resource
 ```
 
 ## System Architecture
@@ -75,12 +50,10 @@ Using Resources (Legacy):
 ┌─────────────────────────────────┐
 │   MCP Atlassian Server          │
 │                                 │
-│  ┌───────────┐   ┌───────────┐ │
-│  │   Tools   │   │ Resources │ │
-│  │ (Primary) │   │  (Legacy) │ │
-│  └─────┬─────┘   └─────┬─────┘ │
-│        └─────────┬─────────────┘│
-│                  ↓               │
+│     ┌────────────────────────┐  │
+│     │        Tools           │  │
+│     └───────────┬────────────┘  │
+│                 ↓                │
 │     ┌────────────────────────┐  │
 │     │   API Utilities        │  │
 │     │ - confluence-tool-api  │  │
@@ -120,10 +93,6 @@ src/
 │   │   ├── create-issue.ts   # Write: Create issue
 │   │   └── ...
 │   └── index.ts              # Tool registration
-├── resources/                 # Resource implementations (legacy)
-│   ├── confluence/
-│   ├── jira/
-│   └── resource-definitions.ts
 ├── utils/                     # Shared utilities
 │   ├── atlassian-api-base.ts    # Base API client
 │   ├── confluence-tool-api.ts   # Confluence API wrapper
@@ -208,12 +177,12 @@ export const registerToolNameTool = (server: McpServer) => {
 The server (`src/index.ts`) uses a **proxy pattern** to inject Atlassian configuration into all handlers:
 
 1. **Load Config**: Reads `ATLASSIAN_*` environment variables
-2. **Create Proxies**: Wraps `server.tool()` and `server.resource()` methods
+2. **Create Proxy**: Wraps `server.tool()` method
 3. **Inject Context**: Adds `atlassianConfig` to every handler's context
-4. **Register**: Calls `registerAllTools()` and `registerAllResources()`
+4. **Register**: Calls `registerAllTools()`
 5. **Connect**: Starts stdio transport with `server.connect()`
 
-This ensures every tool/resource handler receives authenticated API config automatically.
+This ensures every tool handler receives authenticated API config automatically.
 
 ## Communication Protocol
 
@@ -402,12 +371,11 @@ Same pattern as read tools, but ensure:
 
 ## Best Practices
 
-1. **Use Tools**: Prefer tools over resources for new implementations
-2. **Validate Inputs**: Use Zod schemas for all parameters
-3. **Handle Errors**: Provide clear, actionable error messages
-4. **Log Appropriately**: Use logger with appropriate levels
-5. **Document Parameters**: Add `.describe()` to all schema fields
-6. **Test Changes**: Build and test with real MCP client before committing
+1. **Validate Inputs**: Use Zod schemas for all parameters
+2. **Handle Errors**: Provide clear, actionable error messages
+3. **Log Appropriately**: Use logger with appropriate levels
+4. **Document Parameters**: Add `.describe()` to all schema fields
+5. **Test Changes**: Build and test with real MCP client before committing
 
 ## Troubleshooting
 
