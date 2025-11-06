@@ -1,71 +1,115 @@
-import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { Logger } from '../../utils/logger.js';
-import { pagesListSchema, pageSchema, commentsListSchema, attachmentListSchema, versionListSchema, labelListSchema } from '../../schemas/confluence.js';
-import { getConfluencePagesV2, getConfluencePageV2, getConfluencePageBodyV2, getConfluencePageAncestorsV2, getConfluencePageChildrenV2, getConfluencePageLabelsV2, getConfluencePageAttachmentsV2, getConfluencePageVersionsV2, getConfluencePagesWithFilters } from '../../utils/confluence-resource-api.js';
-import { getConfluencePageFooterCommentsV2, getConfluencePageInlineCommentsV2 } from '../../utils/confluence-resource-api.js';
-import { Config, Resources } from '../../utils/mcp-helpers.js';
+import {
+  McpServer,
+  ResourceTemplate,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Logger } from "../../utils/logger.js";
+import {
+  pagesListSchema,
+  pageSchema,
+  commentsListSchema,
+  attachmentListSchema,
+  versionListSchema,
+  labelListSchema,
+} from "../../schemas/confluence.js";
+import {
+  getConfluencePagesV2,
+  getConfluencePageV2,
+  getConfluencePageBodyV2,
+  getConfluencePageAncestorsV2,
+  getConfluencePageChildrenV2,
+  getConfluencePageLabelsV2,
+  getConfluencePageAttachmentsV2,
+  getConfluencePageVersionsV2,
+  getConfluencePagesWithFilters,
+} from "../../utils/confluence-resource-api.js";
+import {
+  getConfluencePageFooterCommentsV2,
+  getConfluencePageInlineCommentsV2,
+} from "../../utils/confluence-resource-api.js";
+import { Config, Resources } from "../../utils/mcp-helpers.js";
 
-const logger = Logger.getLogger('ConfluenceResource:Pages');
+const logger = Logger.getLogger("ConfluenceResource:Pages");
 
 export function registerPageResources(server: McpServer) {
-  logger.info('Registering Confluence page resources...');
+  logger.info("Registering Confluence page resources...");
 
-  // Resource: Page details (API v2, tách call metadata và body)
+  // Resource: Page details (API v2, separate calls for metadata and body)
   server.resource(
-    'confluence-page-details-v2',
-    new ResourceTemplate('confluence://pages/{pageId}', {
+    "confluence-page-details-v2",
+    new ResourceTemplate("confluence://pages/{pageId}", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'confluence://pages/{pageId}',
-            name: 'Confluence Page Details',
-            description: 'Get details for a specific Confluence page by ID. Replace {pageId} with the page ID.',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "confluence://pages/{pageId}",
+            name: "Confluence Page Details",
+            description:
+              "Get details for a specific Confluence page by ID. Replace {pageId} with the page ID.",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri, { pageId }, extra) => {
       let normalizedPageId = Array.isArray(pageId) ? pageId[0] : pageId;
       try {
-        let config = (extra && typeof extra === 'object' && 'context' in extra && extra.context && (extra.context as any).atlassianConfig)
-          ? (extra.context as any).atlassianConfig
-          : Config.getAtlassianConfigFromEnv();
+        let config =
+          extra &&
+          typeof extra === "object" &&
+          "context" in extra &&
+          extra.context &&
+          (extra.context as any).atlassianConfig
+            ? (extra.context as any).atlassianConfig
+            : Config.getAtlassianConfigFromEnv();
         if (!normalizedPageId) {
-          throw new Error('Missing pageId in URI');
+          throw new Error("Missing pageId in URI");
         }
-        logger.info(`Getting details for Confluence page (v2): ${normalizedPageId}`);
+        logger.info(
+          `Getting details for Confluence page (v2): ${normalizedPageId}`
+        );
         // Fetch page with body content in single API call
-        const page = await getConfluencePageV2(config, normalizedPageId, 'storage');
+        const page = await getConfluencePageV2(
+          config,
+          normalizedPageId,
+          "storage"
+        );
         logger.debug(`Page response keys:`, Object.keys(page || {}));
-        
+
         // Extract body content from the page response
         // API v2 with body-format parameter returns body content nested under 'body.storage'
-        let bodyValue = '';
-        let bodyType = 'storage';
-        
-        if (page.body && typeof page.body === 'object') {
-          if ('storage' in page.body && page.body.storage && typeof page.body.storage === 'object') {
-            bodyValue = page.body.storage.value || '';
-            bodyType = page.body.storage.representation || 'storage';
-            logger.info(`Successfully extracted body content for page ${normalizedPageId}, length: ${bodyValue.length}`);
+        let bodyValue = "";
+        let bodyType = "storage";
+
+        if (page.body && typeof page.body === "object") {
+          if (
+            "storage" in page.body &&
+            page.body.storage &&
+            typeof page.body.storage === "object"
+          ) {
+            bodyValue = page.body.storage.value || "";
+            bodyType = page.body.storage.representation || "storage";
+            logger.info(
+              `Successfully extracted body content for page ${normalizedPageId}, length: ${bodyValue.length}`
+            );
           } else {
-            logger.warn(`Page ${normalizedPageId} body exists but storage format not found. Body keys:`, Object.keys(page.body));
+            logger.warn(
+              `Page ${normalizedPageId} body exists but storage format not found. Body keys:`,
+              Object.keys(page.body)
+            );
           }
         } else {
           logger.warn(`Page ${normalizedPageId} has no body field in response`);
         }
-        
+
         const formattedPage = {
           ...page,
           body: bodyValue,
           bodyType: bodyType,
         };
-        const uriString = typeof uri === 'string' ? uri : uri.href;
+        const uriString = typeof uri === "string" ? uri : uri.href;
         return Resources.createStandardResource(
           uriString,
           [formattedPage],
-          'page',
+          "page",
           pageSchema,
           1,
           1,
@@ -73,7 +117,10 @@ export function registerPageResources(server: McpServer) {
           `${config.baseUrl}/wiki/pages/${normalizedPageId}`
         );
       } catch (error) {
-        logger.error(`Error getting Confluence page details (v2) for ${normalizedPageId}:`, error);
+        logger.error(
+          `Error getting Confluence page details (v2) for ${normalizedPageId}:`,
+          error
+        );
         throw error;
       }
     }
@@ -81,41 +128,52 @@ export function registerPageResources(server: McpServer) {
 
   // Resource: List of children pages
   server.resource(
-    'confluence-page-children',
-    new ResourceTemplate('confluence://pages/{pageId}/children', {
+    "confluence-page-children",
+    new ResourceTemplate("confluence://pages/{pageId}/children", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'confluence://pages/{pageId}/children',
-            name: 'Confluence Page Children',
-            description: 'List all children for a Confluence page. Replace {pageId} với ID trang.',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "confluence://pages/{pageId}/children",
+            name: "Confluence Page Children",
+            description:
+              "List all children for a Confluence page. Replace {pageId} with page ID.",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri, { pageId }, extra) => {
       let normalizedPageId = Array.isArray(pageId) ? pageId[0] : pageId;
       try {
-        let config = (extra && typeof extra === 'object' && 'context' in extra && extra.context && (extra.context as any).atlassianConfig)
-          ? (extra.context as any).atlassianConfig
-          : Config.getAtlassianConfigFromEnv();
+        let config =
+          extra &&
+          typeof extra === "object" &&
+          "context" in extra &&
+          extra.context &&
+          (extra.context as any).atlassianConfig
+            ? (extra.context as any).atlassianConfig
+            : Config.getAtlassianConfigFromEnv();
         if (!normalizedPageId) {
-          throw new Error('Missing pageId in URI');
+          throw new Error("Missing pageId in URI");
         }
-        logger.info(`Getting children for Confluence page (v2): ${normalizedPageId}`);
-        const data = await getConfluencePageChildrenV2(config, normalizedPageId);
+        logger.info(
+          `Getting children for Confluence page (v2): ${normalizedPageId}`
+        );
+        const data = await getConfluencePageChildrenV2(
+          config,
+          normalizedPageId
+        );
         const formattedChildren = (data.results || []).map((child: any) => ({
           id: child.id,
           title: child.title,
           status: child.status,
-          url: `${config.baseUrl}/wiki/pages/${child.id}`
+          url: `${config.baseUrl}/wiki/pages/${child.id}`,
         }));
-        const childrenSchema = { type: 'array', items: pageSchema };
+        const childrenSchema = { type: "array", items: pageSchema };
         return Resources.createStandardResource(
-          typeof uri === 'string' ? uri : uri.href,
+          typeof uri === "string" ? uri : uri.href,
           formattedChildren,
-          'children',
+          "children",
           childrenSchema,
           formattedChildren.length,
           formattedChildren.length,
@@ -123,44 +181,64 @@ export function registerPageResources(server: McpServer) {
           `${config.baseUrl}/wiki/pages/${normalizedPageId}`
         );
       } catch (error) {
-        logger.error(`Error getting Confluence page children for ${normalizedPageId}:`, error);
+        logger.error(
+          `Error getting Confluence page children for ${normalizedPageId}:`,
+          error
+        );
         throw error;
       }
     }
   );
 
-  // Resource: List of comments for a page (API v2, gộp cả footer và inline)
+  // Resource: List of comments for a page (API v2, includes both footer and inline)
   server.resource(
-    'confluence-page-comments',
-    new ResourceTemplate('confluence://pages/{pageId}/comments', {
+    "confluence-page-comments",
+    new ResourceTemplate("confluence://pages/{pageId}/comments", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'confluence://pages/{pageId}/comments',
-            name: 'Confluence Page Comments',
-            description: 'List comments for a Confluence page. Replace {pageId} with the page ID.',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "confluence://pages/{pageId}/comments",
+            name: "Confluence Page Comments",
+            description:
+              "List comments for a Confluence page. Replace {pageId} with the page ID.",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri, { pageId }, extra) => {
       let normalizedPageId = Array.isArray(pageId) ? pageId[0] : pageId;
       try {
-        let config = (extra && typeof extra === 'object' && 'context' in extra && extra.context && (extra.context as any).atlassianConfig)
-          ? (extra.context as any).atlassianConfig
-          : Config.getAtlassianConfigFromEnv();
+        let config =
+          extra &&
+          typeof extra === "object" &&
+          "context" in extra &&
+          extra.context &&
+          (extra.context as any).atlassianConfig
+            ? (extra.context as any).atlassianConfig
+            : Config.getAtlassianConfigFromEnv();
         if (!normalizedPageId) {
-          throw new Error('Missing pageId in URI');
+          throw new Error("Missing pageId in URI");
         }
-        logger.info(`Getting comments for Confluence page (v2): ${normalizedPageId}`);
-        const footerComments = await getConfluencePageFooterCommentsV2(config, normalizedPageId);
-        const inlineComments = await getConfluencePageInlineCommentsV2(config, normalizedPageId);
-        const allComments = [...(footerComments.results || []), ...(inlineComments.results || [])];
+        logger.info(
+          `Getting comments for Confluence page (v2): ${normalizedPageId}`
+        );
+        const footerComments = await getConfluencePageFooterCommentsV2(
+          config,
+          normalizedPageId
+        );
+        const inlineComments = await getConfluencePageInlineCommentsV2(
+          config,
+          normalizedPageId
+        );
+        const allComments = [
+          ...(footerComments.results || []),
+          ...(inlineComments.results || []),
+        ];
         return Resources.createStandardResource(
-          typeof uri === 'string' ? uri : uri.href,
+          typeof uri === "string" ? uri : uri.href,
           allComments,
-          'comments',
+          "comments",
           commentsListSchema,
           allComments.length,
           allComments.length,
@@ -168,7 +246,10 @@ export function registerPageResources(server: McpServer) {
           `${config.baseUrl}/wiki/pages/${normalizedPageId}`
         );
       } catch (error) {
-        logger.error(`Error getting Confluence page comments for ${normalizedPageId}:`, error);
+        logger.error(
+          `Error getting Confluence page comments for ${normalizedPageId}:`,
+          error
+        );
         throw error;
       }
     }
@@ -176,43 +257,57 @@ export function registerPageResources(server: McpServer) {
 
   // Resource: List of ancestors for a page
   server.resource(
-    'confluence-page-ancestors',
-    new ResourceTemplate('confluence://pages/{pageId}/ancestors', {
+    "confluence-page-ancestors",
+    new ResourceTemplate("confluence://pages/{pageId}/ancestors", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'confluence://pages/{pageId}/ancestors',
-            name: 'Confluence Page Ancestors',
-            description: 'List all ancestors for a Confluence page. Replace {pageId} with the page ID.',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "confluence://pages/{pageId}/ancestors",
+            name: "Confluence Page Ancestors",
+            description:
+              "List all ancestors for a Confluence page. Replace {pageId} with the page ID.",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri, { pageId }, extra) => {
       let normalizedPageId = Array.isArray(pageId) ? pageId[0] : pageId;
       try {
-        let config = (extra && typeof extra === 'object' && 'context' in extra && extra.context && (extra.context as any).atlassianConfig)
-          ? (extra.context as any).atlassianConfig
-          : Config.getAtlassianConfigFromEnv();
+        let config =
+          extra &&
+          typeof extra === "object" &&
+          "context" in extra &&
+          extra.context &&
+          (extra.context as any).atlassianConfig
+            ? (extra.context as any).atlassianConfig
+            : Config.getAtlassianConfigFromEnv();
         if (!normalizedPageId) {
-          throw new Error('Missing pageId in URI');
+          throw new Error("Missing pageId in URI");
         }
-        logger.info(`Getting ancestors for Confluence page (v2): ${normalizedPageId}`);
-        const data = await getConfluencePageAncestorsV2(config, normalizedPageId);
+        logger.info(
+          `Getting ancestors for Confluence page (v2): ${normalizedPageId}`
+        );
+        const data = await getConfluencePageAncestorsV2(
+          config,
+          normalizedPageId
+        );
         const ancestors = Array.isArray(data?.results) ? data.results : [];
         return Resources.createStandardResource(
-          typeof uri === 'string' ? uri : uri.href,
+          typeof uri === "string" ? uri : uri.href,
           ancestors,
-          'ancestors',
-          { type: 'array', items: pageSchema },
+          "ancestors",
+          { type: "array", items: pageSchema },
           ancestors.length,
           ancestors.length,
           0,
           `${config.baseUrl}/wiki/pages/${normalizedPageId}`
         );
       } catch (error) {
-        logger.error(`Error getting Confluence page ancestors for ${normalizedPageId}:`, error);
+        logger.error(
+          `Error getting Confluence page ancestors for ${normalizedPageId}:`,
+          error
+        );
         throw error;
       }
     }
@@ -220,34 +315,47 @@ export function registerPageResources(server: McpServer) {
 
   // Resource: List of attachments for a page
   server.resource(
-    'confluence-page-attachments',
-    new ResourceTemplate('confluence://pages/{pageId}/attachments', {
+    "confluence-page-attachments",
+    new ResourceTemplate("confluence://pages/{pageId}/attachments", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'confluence://pages/{pageId}/attachments',
-            name: 'Confluence Page Attachments',
-            description: 'List all attachments for a Confluence page. Replace {pageId} with the page ID.',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "confluence://pages/{pageId}/attachments",
+            name: "Confluence Page Attachments",
+            description:
+              "List all attachments for a Confluence page. Replace {pageId} with the page ID.",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri, params, extra) => {
-      let normalizedPageId = Array.isArray(params.pageId) ? params.pageId[0] : params.pageId;
+      let normalizedPageId = Array.isArray(params.pageId)
+        ? params.pageId[0]
+        : params.pageId;
       try {
-        let config = (extra && typeof extra === 'object' && 'context' in extra && extra.context && (extra.context as any).atlassianConfig)
-          ? (extra.context as any).atlassianConfig
-          : Config.getAtlassianConfigFromEnv();
+        let config =
+          extra &&
+          typeof extra === "object" &&
+          "context" in extra &&
+          extra.context &&
+          (extra.context as any).atlassianConfig
+            ? (extra.context as any).atlassianConfig
+            : Config.getAtlassianConfigFromEnv();
         if (!normalizedPageId) {
-          throw new Error('Missing pageId in URI');
+          throw new Error("Missing pageId in URI");
         }
-        logger.info(`Getting attachments for Confluence page (v2): ${normalizedPageId}`);
-        const data = await getConfluencePageAttachmentsV2(config, normalizedPageId);
+        logger.info(
+          `Getting attachments for Confluence page (v2): ${normalizedPageId}`
+        );
+        const data = await getConfluencePageAttachmentsV2(
+          config,
+          normalizedPageId
+        );
         return Resources.createStandardResource(
-          typeof uri === 'string' ? uri : uri.href,
+          typeof uri === "string" ? uri : uri.href,
           data.results || [],
-          'attachments',
+          "attachments",
           attachmentListSchema,
           data.size || (data.results || []).length,
           data.limit || (data.results || []).length,
@@ -255,7 +363,10 @@ export function registerPageResources(server: McpServer) {
           undefined
         );
       } catch (error) {
-        logger.error(`Error getting Confluence page attachments for ${normalizedPageId}:`, error);
+        logger.error(
+          `Error getting Confluence page attachments for ${normalizedPageId}:`,
+          error
+        );
         throw error;
       }
     }
@@ -263,34 +374,47 @@ export function registerPageResources(server: McpServer) {
 
   // Resource: List of versions for a page
   server.resource(
-    'confluence-page-versions',
-    new ResourceTemplate('confluence://pages/{pageId}/versions', {
+    "confluence-page-versions",
+    new ResourceTemplate("confluence://pages/{pageId}/versions", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'confluence://pages/{pageId}/versions',
-            name: 'Confluence Page Versions',
-            description: 'List all versions for a Confluence page. Replace {pageId} with the page ID.',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "confluence://pages/{pageId}/versions",
+            name: "Confluence Page Versions",
+            description:
+              "List all versions for a Confluence page. Replace {pageId} with the page ID.",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri, params, extra) => {
-      let normalizedPageId = Array.isArray(params.pageId) ? params.pageId[0] : params.pageId;
+      let normalizedPageId = Array.isArray(params.pageId)
+        ? params.pageId[0]
+        : params.pageId;
       try {
-        let config = (extra && typeof extra === 'object' && 'context' in extra && extra.context && (extra.context as any).atlassianConfig)
-          ? (extra.context as any).atlassianConfig
-          : Config.getAtlassianConfigFromEnv();
+        let config =
+          extra &&
+          typeof extra === "object" &&
+          "context" in extra &&
+          extra.context &&
+          (extra.context as any).atlassianConfig
+            ? (extra.context as any).atlassianConfig
+            : Config.getAtlassianConfigFromEnv();
         if (!normalizedPageId) {
-          throw new Error('Missing pageId in URI');
+          throw new Error("Missing pageId in URI");
         }
-        logger.info(`Getting versions for Confluence page (v2): ${normalizedPageId}`);
-        const data = await getConfluencePageVersionsV2(config, normalizedPageId);
+        logger.info(
+          `Getting versions for Confluence page (v2): ${normalizedPageId}`
+        );
+        const data = await getConfluencePageVersionsV2(
+          config,
+          normalizedPageId
+        );
         return Resources.createStandardResource(
-          typeof uri === 'string' ? uri : uri.href,
+          typeof uri === "string" ? uri : uri.href,
           data.results || [],
-          'versions',
+          "versions",
           versionListSchema,
           data.size || (data.results || []).length,
           data.limit || (data.results || []).length,
@@ -298,7 +422,10 @@ export function registerPageResources(server: McpServer) {
           undefined
         );
       } catch (error) {
-        logger.error(`Error getting Confluence page versions for ${normalizedPageId}:`, error);
+        logger.error(
+          `Error getting Confluence page versions for ${normalizedPageId}:`,
+          error
+        );
         throw error;
       }
     }
@@ -306,36 +433,41 @@ export function registerPageResources(server: McpServer) {
 
   // Resource: List of pages (search/filter)
   server.resource(
-    'confluence-pages-list',
-    new ResourceTemplate('confluence://pages', {
+    "confluence-pages-list",
+    new ResourceTemplate("confluence://pages", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'confluence://pages',
-            name: 'Confluence Pages',
-            description: 'List and search all Confluence pages',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "confluence://pages",
+            name: "Confluence Pages",
+            description: "List and search all Confluence pages",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri, params, extra) => {
-      let config = (extra && typeof extra === 'object' && 'context' in extra && extra.context && (extra.context as any).atlassianConfig)
-        ? (extra.context as any).atlassianConfig
-        : Config.getAtlassianConfigFromEnv();
+      let config =
+        extra &&
+        typeof extra === "object" &&
+        "context" in extra &&
+        extra.context &&
+        (extra.context as any).atlassianConfig
+          ? (extra.context as any).atlassianConfig
+          : Config.getAtlassianConfigFromEnv();
       const filterParams = { ...params };
       const data = await getConfluencePagesWithFilters(config, filterParams);
       const formattedPages = (data.results || []).map((page: any) => ({
         id: page.id,
         title: page.title,
         status: page.status,
-        url: `${config.baseUrl}/wiki/pages/${page.id}`
+        url: `${config.baseUrl}/wiki/pages/${page.id}`,
       }));
-      const uriString = typeof uri === 'string' ? uri : uri.href;
+      const uriString = typeof uri === "string" ? uri : uri.href;
       return Resources.createStandardResource(
         uriString,
         formattedPages,
-        'pages',
+        "pages",
         pagesListSchema,
         data.size || formattedPages.length,
         filterParams.limit || formattedPages.length,
@@ -347,39 +479,47 @@ export function registerPageResources(server: McpServer) {
 
   // Resource: List of labels for a page
   server.resource(
-    'confluence-page-labels',
-    new ResourceTemplate('confluence://pages/{pageId}/labels', {
+    "confluence-page-labels",
+    new ResourceTemplate("confluence://pages/{pageId}/labels", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'confluence://pages/{pageId}/labels',
-            name: 'Confluence Page Labels',
-            description: 'List all labels for a Confluence page. Replace {pageId} with the page ID.',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "confluence://pages/{pageId}/labels",
+            name: "Confluence Page Labels",
+            description:
+              "List all labels for a Confluence page. Replace {pageId} with the page ID.",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri, { pageId }, extra) => {
       let normalizedPageId = Array.isArray(pageId) ? pageId[0] : pageId;
       try {
-        let config = (extra && typeof extra === 'object' && 'context' in extra && extra.context && (extra.context as any).atlassianConfig)
-          ? (extra.context as any).atlassianConfig
-          : Config.getAtlassianConfigFromEnv();
+        let config =
+          extra &&
+          typeof extra === "object" &&
+          "context" in extra &&
+          extra.context &&
+          (extra.context as any).atlassianConfig
+            ? (extra.context as any).atlassianConfig
+            : Config.getAtlassianConfigFromEnv();
         if (!normalizedPageId) {
-          throw new Error('Missing pageId in URI');
+          throw new Error("Missing pageId in URI");
         }
-        logger.info(`Getting labels for Confluence page (v2): ${normalizedPageId}`);
+        logger.info(
+          `Getting labels for Confluence page (v2): ${normalizedPageId}`
+        );
         const data = await getConfluencePageLabelsV2(config, normalizedPageId);
         const formattedLabels = (data.results || []).map((label: any) => ({
           id: label.id,
           name: label.name,
-          prefix: label.prefix
+          prefix: label.prefix,
         }));
         return Resources.createStandardResource(
-          typeof uri === 'string' ? uri : uri.href,
+          typeof uri === "string" ? uri : uri.href,
           formattedLabels,
-          'labels',
+          "labels",
           labelListSchema,
           data.size || formattedLabels.length,
           data.limit || formattedLabels.length,
@@ -387,7 +527,10 @@ export function registerPageResources(server: McpServer) {
           undefined
         );
       } catch (error) {
-        logger.error(`Error getting Confluence page labels for ${normalizedPageId}:`, error);
+        logger.error(
+          `Error getting Confluence page labels for ${normalizedPageId}:`,
+          error
+        );
         throw error;
       }
     }

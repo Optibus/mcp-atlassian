@@ -1,6 +1,10 @@
-import { AtlassianConfig, logger, createBasicHeaders } from './atlassian-api-base.js';
-import { normalizeAtlassianBaseUrl } from './atlassian-api-base.js';
-import { ApiError, ApiErrorType } from './error-handler.js';
+import {
+  AtlassianConfig,
+  logger,
+  createBasicHeaders,
+} from "./atlassian-api-base.js";
+import { normalizeAtlassianBaseUrl } from "./atlassian-api-base.js";
+import { ApiError, ApiErrorType } from "./error-handler.js";
 
 // Helper: Fetch Jira create metadata for a project/issueType
 export async function fetchJiraCreateMeta(
@@ -10,26 +14,35 @@ export async function fetchJiraCreateMeta(
 ): Promise<Record<string, any>> {
   const headers = createBasicHeaders(config.email, config.apiToken);
   const baseUrl = normalizeAtlassianBaseUrl(config.baseUrl);
-  // Lấy metadata cho project và issueType (dùng name hoặc id)
-  const url = `${baseUrl}/rest/api/3/issue/createmeta?projectKeys=${encodeURIComponent(projectKey)}&issuetypeNames=${encodeURIComponent(issueType)}&expand=projects.issuetypes.fields`;
-  const response = await fetch(url, { headers, credentials: 'omit' });
+  // Get metadata for project and issueType (using name or id)
+  const url = `${baseUrl}/rest/api/3/issue/createmeta?projectKeys=${encodeURIComponent(
+    projectKey
+  )}&issuetypeNames=${encodeURIComponent(
+    issueType
+  )}&expand=projects.issuetypes.fields`;
+  const response = await fetch(url, { headers, credentials: "omit" });
   if (!response.ok) {
     const responseText = await response.text();
-    logger.error(`Jira API error (createmeta, ${response.status}):`, responseText);
-    throw new Error(`Jira API error (createmeta): ${response.status} ${responseText}`);
+    logger.error(
+      `Jira API error (createmeta, ${response.status}):`,
+      responseText
+    );
+    throw new Error(
+      `Jira API error (createmeta): ${response.status} ${responseText}`
+    );
   }
   const meta = await response.json();
-  // Trả về object các trường hợp lệ
+  // Return object of valid fields
   try {
     const fields = meta.projects?.[0]?.issuetypes?.[0]?.fields || {};
     return fields;
   } catch (e) {
-    logger.error('Cannot parse createmeta fields', e);
+    logger.error("Cannot parse createmeta fields", e);
     return {};
   }
 }
 
-// Create a new Jira issue (fix: chỉ gửi các trường có trong createmeta)
+// Create a new Jira issue (fix: only send fields present in createmeta)
 export async function createIssue(
   config: AtlassianConfig,
   projectKey: string,
@@ -43,19 +56,25 @@ export async function createIssue(
     const baseUrl = normalizeAtlassianBaseUrl(config.baseUrl);
     const url = `${baseUrl}/rest/api/3/issue`;
 
-    // Lấy metadata các trường hợp lệ
-    const createmetaFields = await fetchJiraCreateMeta(config, projectKey, issueType);
-    
-    // Chỉ map các trường có trong createmeta
+    // Get metadata for valid fields
+    const createmetaFields = await fetchJiraCreateMeta(
+      config,
+      projectKey,
+      issueType
+    );
+
+    // Only map fields present in createmeta
     const safeFields: Record<string, any> = {};
     let labelsToUpdate: string[] | undefined = undefined;
     for (const key of Object.keys(additionalFields)) {
       if (createmetaFields[key]) {
         safeFields[key] = additionalFields[key];
       } else {
-        logger.warn(`[createIssue] Field '${key}' is not available on create screen for project ${projectKey} / issueType ${issueType}, will be ignored.`);
-        // Nếu là labels thì lưu lại để update sau
-        if (key === 'labels') {
+        logger.warn(
+          `[createIssue] Field '${key}' is not available on create screen for project ${projectKey} / issueType ${issueType}, will be ignored.`
+        );
+        // If this is labels, save for update after creation
+        if (key === "labels") {
           labelsToUpdate = additionalFields[key];
         }
       }
@@ -78,7 +97,7 @@ export async function createIssue(
       },
     };
 
-    if (description && createmetaFields['description']) {
+    if (description && createmetaFields["description"]) {
       data.fields.description = {
         type: "doc",
         version: 1,
@@ -97,7 +116,11 @@ export async function createIssue(
     }
 
     logger.debug(`Creating issue in project ${projectKey}`);
-    const curlCmd = `curl -X POST -H \"Content-Type: application/json\" -H \"Accept: application/json\" -H \"User-Agent: MCP-Atlassian-Server/1.0.0\" -u \"${config.email}:${config.apiToken.substring(0, 5)}...\" \"${url}\" -d '${JSON.stringify(data)}'`;
+    const curlCmd = `curl -X POST -H \"Content-Type: application/json\" -H \"Accept: application/json\" -H \"User-Agent: MCP-Atlassian-Server/1.0.0\" -u \"${
+      config.email
+    }:${config.apiToken.substring(0, 5)}...\" \"${url}\" -d '${JSON.stringify(
+      data
+    )}'`;
     logger.info(`Debug with curl: ${curlCmd}`);
 
     const response = await fetch(url, {
@@ -151,9 +174,11 @@ export async function createIssue(
 
     const newIssue = await response.json();
 
-    // Nếu không tạo được labels khi tạo issue, update lại ngay sau khi tạo
+    // If labels couldn't be set during creation, update immediately after
     if (labelsToUpdate && newIssue && newIssue.key) {
-      logger.info(`[createIssue] Updating labels for issue ${newIssue.key} ngay sau khi tạo (do không khả dụng trên màn hình tạo issue)`);
+      logger.info(
+        `[createIssue] Updating labels for issue ${newIssue.key} after creation (not available on create screen)`
+      );
       const updateUrl = `${baseUrl}/rest/api/3/issue/${newIssue.key}`;
       const updateData = { fields: { labels: labelsToUpdate } };
       const updateResponse = await fetch(updateUrl, {
@@ -164,7 +189,10 @@ export async function createIssue(
       });
       if (!updateResponse.ok) {
         const updateText = await updateResponse.text();
-        logger.error(`[createIssue] Failed to update labels for issue ${newIssue.key}:`, updateText);
+        logger.error(
+          `[createIssue] Failed to update labels for issue ${newIssue.key}:`,
+          updateText
+        );
       } else {
         logger.info(`[createIssue] Labels updated for issue ${newIssue.key}`);
       }
@@ -178,7 +206,9 @@ export async function createIssue(
     }
     throw new ApiError(
       ApiErrorType.UNKNOWN_ERROR,
-      `Error creating issue: ${error instanceof Error ? error.message : String(error)}`,
+      `Error creating issue: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       500,
       error instanceof Error ? error : new Error(String(error))
     );
@@ -197,7 +227,11 @@ export async function updateIssue(
     const url = `${baseUrl}/rest/api/3/issue/${issueIdOrKey}`;
     const data = { fields };
     logger.debug(`Updating issue ${issueIdOrKey}`);
-    const curlCmd = `curl -X PUT -H "Content-Type: application/json" -H "Accept: application/json" -H "User-Agent: MCP-Atlassian-Server/1.0.0" -u "${config.email}:${config.apiToken.substring(0, 5)}..." "${url}" -d '${JSON.stringify(data)}'`;
+    const curlCmd = `curl -X PUT -H "Content-Type: application/json" -H "Accept: application/json" -H "User-Agent: MCP-Atlassian-Server/1.0.0" -u "${
+      config.email
+    }:${config.apiToken.substring(0, 5)}..." "${url}" -d '${JSON.stringify(
+      data
+    )}'`;
     logger.info(`Debug with curl: ${curlCmd}`);
     const response = await fetch(url, {
       method: "PUT",
@@ -264,7 +298,9 @@ export async function updateIssue(
     }
     throw new ApiError(
       ApiErrorType.UNKNOWN_ERROR,
-      `Error updating issue: ${error instanceof Error ? error.message : String(error)}`,
+      `Error updating issue: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       500,
       error instanceof Error ? error : new Error(String(error))
     );
@@ -312,8 +348,14 @@ export async function transitionIssue(
         ],
       };
     }
-    logger.debug(`Transitioning issue ${issueIdOrKey} to status ID ${transitionId}`);
-    const curlCmd = `curl -X POST -H "Content-Type: application/json" -H "Accept: application/json" -H "User-Agent: MCP-Atlassian-Server/1.0.0" -u "${config.email}:${config.apiToken.substring(0, 5)}..." "${url}" -d '${JSON.stringify(data)}'`;
+    logger.debug(
+      `Transitioning issue ${issueIdOrKey} to status ID ${transitionId}`
+    );
+    const curlCmd = `curl -X POST -H "Content-Type: application/json" -H "Accept: application/json" -H "User-Agent: MCP-Atlassian-Server/1.0.0" -u "${
+      config.email
+    }:${config.apiToken.substring(0, 5)}..." "${url}" -d '${JSON.stringify(
+      data
+    )}'`;
     logger.info(`Debug with curl: ${curlCmd}`);
     const response = await fetch(url, {
       method: "POST",
@@ -381,7 +423,9 @@ export async function transitionIssue(
     }
     throw new ApiError(
       ApiErrorType.UNKNOWN_ERROR,
-      `Error transitioning issue: ${error instanceof Error ? error.message : String(error)}`,
+      `Error transitioning issue: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       500,
       error instanceof Error ? error : new Error(String(error))
     );
@@ -399,8 +443,16 @@ export async function assignIssue(
     const baseUrl = normalizeAtlassianBaseUrl(config.baseUrl);
     const url = `${baseUrl}/rest/api/3/issue/${issueIdOrKey}/assignee`;
     const data = { accountId: accountId };
-    logger.debug(`Assigning issue ${issueIdOrKey} to account ID ${accountId || "UNASSIGNED"}`);
-    const curlCmd = `curl -X PUT -H "Content-Type: application/json" -H "Accept: application/json" -H "User-Agent: MCP-Atlassian-Server/1.0.0" -u "${config.email}:${config.apiToken.substring(0, 5)}..." "${url}" -d '${JSON.stringify(data)}'`;
+    logger.debug(
+      `Assigning issue ${issueIdOrKey} to account ID ${
+        accountId || "UNASSIGNED"
+      }`
+    );
+    const curlCmd = `curl -X PUT -H "Content-Type: application/json" -H "Accept: application/json" -H "User-Agent: MCP-Atlassian-Server/1.0.0" -u "${
+      config.email
+    }:${config.apiToken.substring(0, 5)}..." "${url}" -d '${JSON.stringify(
+      data
+    )}'`;
     logger.info(`Debug with curl: ${curlCmd}`);
     const response = await fetch(url, {
       method: "PUT",
@@ -469,7 +521,9 @@ export async function assignIssue(
     }
     throw new ApiError(
       ApiErrorType.UNKNOWN_ERROR,
-      `Error assigning issue: ${error instanceof Error ? error.message : String(error)}`,
+      `Error assigning issue: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       500,
       error instanceof Error ? error : new Error(String(error))
     );
@@ -477,17 +531,20 @@ export async function assignIssue(
 }
 
 // Create a new dashboard
-export async function createDashboard(config: AtlassianConfig, data: { name: string, description?: string, sharePermissions?: any[] }): Promise<any> {
+export async function createDashboard(
+  config: AtlassianConfig,
+  data: { name: string; description?: string; sharePermissions?: any[] }
+): Promise<any> {
   try {
     const headers = createBasicHeaders(config.email, config.apiToken);
     const baseUrl = normalizeAtlassianBaseUrl(config.baseUrl);
     const url = `${baseUrl}/rest/api/3/dashboard`;
     logger.debug(`Creating dashboard: ${data.name}`);
     const response = await fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers,
       body: JSON.stringify(data),
-      credentials: 'omit',
+      credentials: "omit",
     });
     if (!response.ok) {
       const responseText = await response.text();
@@ -502,17 +559,21 @@ export async function createDashboard(config: AtlassianConfig, data: { name: str
 }
 
 // Update a dashboard
-export async function updateDashboard(config: AtlassianConfig, dashboardId: string, data: { name?: string, description?: string, sharePermissions?: any[] }): Promise<any> {
+export async function updateDashboard(
+  config: AtlassianConfig,
+  dashboardId: string,
+  data: { name?: string; description?: string; sharePermissions?: any[] }
+): Promise<any> {
   try {
     const headers = createBasicHeaders(config.email, config.apiToken);
     const baseUrl = normalizeAtlassianBaseUrl(config.baseUrl);
     const url = `${baseUrl}/rest/api/3/dashboard/${dashboardId}`;
     logger.debug(`Updating dashboard ${dashboardId}`);
     const response = await fetch(url, {
-      method: 'PUT',
+      method: "PUT",
       headers,
       body: JSON.stringify(data),
-      credentials: 'omit',
+      credentials: "omit",
     });
     if (!response.ok) {
       const responseText = await response.text();
@@ -527,17 +588,27 @@ export async function updateDashboard(config: AtlassianConfig, dashboardId: stri
 }
 
 // Add a gadget to a dashboard
-export async function addGadgetToDashboard(config: AtlassianConfig, dashboardId: string, data: { uri: string, color?: string, position?: any, title?: string, properties?: any }): Promise<any> {
+export async function addGadgetToDashboard(
+  config: AtlassianConfig,
+  dashboardId: string,
+  data: {
+    uri: string;
+    color?: string;
+    position?: any;
+    title?: string;
+    properties?: any;
+  }
+): Promise<any> {
   try {
     const headers = createBasicHeaders(config.email, config.apiToken);
     const baseUrl = normalizeAtlassianBaseUrl(config.baseUrl);
     const url = `${baseUrl}/rest/api/3/dashboard/${dashboardId}/gadget`;
     logger.debug(`Adding gadget to dashboard ${dashboardId}`);
     const response = await fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers,
       body: JSON.stringify(data),
-      credentials: 'omit',
+      credentials: "omit",
     });
     if (!response.ok) {
       const responseText = await response.text();
@@ -552,16 +623,20 @@ export async function addGadgetToDashboard(config: AtlassianConfig, dashboardId:
 }
 
 // Remove a gadget from a dashboard
-export async function removeGadgetFromDashboard(config: AtlassianConfig, dashboardId: string, gadgetId: string): Promise<any> {
+export async function removeGadgetFromDashboard(
+  config: AtlassianConfig,
+  dashboardId: string,
+  gadgetId: string
+): Promise<any> {
   try {
     const headers = createBasicHeaders(config.email, config.apiToken);
     const baseUrl = normalizeAtlassianBaseUrl(config.baseUrl);
     const url = `${baseUrl}/rest/api/3/dashboard/${dashboardId}/gadget/${gadgetId}`;
     logger.debug(`Removing gadget ${gadgetId} from dashboard ${dashboardId}`);
     const response = await fetch(url, {
-      method: 'DELETE',
+      method: "DELETE",
       headers,
-      credentials: 'omit',
+      credentials: "omit",
     });
     if (!response.ok) {
       const responseText = await response.text();
@@ -570,7 +645,10 @@ export async function removeGadgetFromDashboard(config: AtlassianConfig, dashboa
     }
     return { success: true };
   } catch (error) {
-    logger.error(`Error removing gadget ${gadgetId} from dashboard ${dashboardId}:`, error);
+    logger.error(
+      `Error removing gadget ${gadgetId} from dashboard ${dashboardId}:`,
+      error
+    );
     throw error;
   }
 }
@@ -590,15 +668,15 @@ export async function createFilter(
     const data: any = {
       name,
       jql,
-      description: description || '',
-      favourite: favourite !== undefined ? favourite : false
+      description: description || "",
+      favourite: favourite !== undefined ? favourite : false,
     };
     logger.debug(`Creating Jira filter: ${name}`);
     const response = await fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers,
       body: JSON.stringify(data),
-      credentials: 'omit',
+      credentials: "omit",
     });
     if (!response.ok) {
       const responseText = await response.text();
@@ -616,28 +694,40 @@ export async function createFilter(
 export async function updateFilter(
   config: AtlassianConfig,
   filterId: string,
-  updateData: { name?: string; jql?: string; description?: string; favourite?: boolean; sharePermissions?: any[] }
+  updateData: {
+    name?: string;
+    jql?: string;
+    description?: string;
+    favourite?: boolean;
+    sharePermissions?: any[];
+  }
 ): Promise<any> {
   try {
     const headers = createBasicHeaders(config.email, config.apiToken);
     const baseUrl = normalizeAtlassianBaseUrl(config.baseUrl);
     const url = `${baseUrl}/rest/api/3/filter/${filterId}`;
     logger.debug(`Updating Jira filter ${filterId}`);
-    // Chỉ build payload với các trường hợp lệ
-    const allowedFields = ['name', 'jql', 'description', 'favourite', 'sharePermissions'] as const;
-    type AllowedField = typeof allowedFields[number];
+    // Only build payload with valid fields
+    const allowedFields = [
+      "name",
+      "jql",
+      "description",
+      "favourite",
+      "sharePermissions",
+    ] as const;
+    type AllowedField = (typeof allowedFields)[number];
     const data: any = {};
     for (const key of allowedFields) {
       if (updateData[key as AllowedField] !== undefined) {
         data[key] = updateData[key as AllowedField];
       }
     }
-    logger.debug('Payload for updateFilter:', JSON.stringify(data));
+    logger.debug("Payload for updateFilter:", JSON.stringify(data));
     const response = await fetch(url, {
-      method: 'PUT',
+      method: "PUT",
       headers,
       body: JSON.stringify(data),
-      credentials: 'omit',
+      credentials: "omit",
     });
     if (!response.ok) {
       const responseText = await response.text();
@@ -662,9 +752,9 @@ export async function deleteFilter(
     const url = `${baseUrl}/rest/api/3/filter/${filterId}`;
     logger.debug(`Deleting Jira filter ${filterId}`);
     const response = await fetch(url, {
-      method: 'DELETE',
+      method: "DELETE",
       headers,
-      credentials: 'omit',
+      credentials: "omit",
     });
     if (!response.ok) {
       const responseText = await response.text();
@@ -677,16 +767,20 @@ export async function deleteFilter(
   }
 }
 
-// Lấy danh sách tất cả gadget có sẵn để thêm vào dashboard
-export async function getJiraAvailableGadgets(config: AtlassianConfig): Promise<any> {
+// Get list of all available gadgets for dashboard
+export async function getJiraAvailableGadgets(
+  config: AtlassianConfig
+): Promise<any> {
   const headers = createBasicHeaders(config.email, config.apiToken);
   const baseUrl = normalizeAtlassianBaseUrl(config.baseUrl);
   const url = `${baseUrl}/rest/api/3/dashboard/gadgets`;
-  const response = await fetch(url, { headers, credentials: 'omit' });
+  const response = await fetch(url, { headers, credentials: "omit" });
   if (!response.ok) {
     const responseText = await response.text();
     logger.error(`Jira API error (gadgets, ${response.status}):`, responseText);
-    throw new Error(`Jira API error (gadgets): ${response.status} ${responseText}`);
+    throw new Error(
+      `Jira API error (gadgets): ${response.status} ${responseText}`
+    );
   }
   return await response.json();
-} 
+}

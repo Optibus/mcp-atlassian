@@ -1,45 +1,57 @@
-import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getDashboards, getMyDashboards, getDashboardById, getDashboardGadgets } from '../../utils/jira-resource-api.js';
-import { Logger } from '../../utils/logger.js';
-import { dashboardSchema, dashboardListSchema, gadgetListSchema } from '../../schemas/jira.js';
-import { Config, Resources } from '../../utils/mcp-helpers.js';
+import {
+  McpServer,
+  ResourceTemplate,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+  getDashboards,
+  getMyDashboards,
+  getDashboardById,
+  getDashboardGadgets,
+} from "../../utils/jira-resource-api.js";
+import { Logger } from "../../utils/logger.js";
+import {
+  dashboardSchema,
+  dashboardListSchema,
+  gadgetListSchema,
+} from "../../schemas/jira.js";
+import { Config, Resources } from "../../utils/mcp-helpers.js";
 
-const logger = Logger.getLogger('JiraDashboardResources');
+const logger = Logger.getLogger("JiraDashboardResources");
 
-// (Có thể bổ sung schema dashboardSchema, gadgetsSchema nếu cần)
+// (Can add dashboardSchema, gadgetsSchema if needed)
 
 export function registerDashboardResources(server: McpServer) {
-  logger.info('Registering Jira dashboard resources...');
+  logger.info("Registering Jira dashboard resources...");
 
   // List all dashboards
   server.resource(
-    'jira-dashboards',
-    new ResourceTemplate('jira://dashboards', {
+    "jira-dashboards",
+    new ResourceTemplate("jira://dashboards", {
       list: async (_extra) => {
         return {
           resources: [
             {
-              uri: 'jira://dashboards',
-              name: 'Jira Dashboards',
-              description: 'List and search all Jira dashboards',
-              mimeType: 'application/json'
-            }
-          ]
+              uri: "jira://dashboards",
+              name: "Jira Dashboards",
+              description: "List and search all Jira dashboards",
+              mimeType: "application/json",
+            },
+          ],
         };
-      }
+      },
     }),
     async (uri: string | URL, params: Record<string, any>, extra: any) => {
       try {
         // Get config from context or environment
         const config = Config.getAtlassianConfigFromEnv();
-        const uriStr = typeof uri === 'string' ? uri : uri.href;
-        
+        const uriStr = typeof uri === "string" ? uri : uri.href;
+
         const { limit, offset } = Resources.extractPagingParams(params);
         const data = await getDashboards(config, offset, limit);
         return Resources.createStandardResource(
           uriStr,
           data.dashboards || [],
-          'dashboards',
+          "dashboards",
           dashboardListSchema,
           data.total || (data.dashboards ? data.dashboards.length : 0),
           limit,
@@ -47,7 +59,10 @@ export function registerDashboardResources(server: McpServer) {
           `${config.baseUrl}/jira/dashboards` // UI URL
         );
       } catch (error) {
-        logger.error(`Error handling resource request for jira-dashboards:`, error);
+        logger.error(
+          `Error handling resource request for jira-dashboards:`,
+          error
+        );
         throw error;
       }
     }
@@ -55,31 +70,32 @@ export function registerDashboardResources(server: McpServer) {
 
   // List my dashboards
   server.resource(
-    'jira-my-dashboards',
-    new ResourceTemplate('jira://dashboards/my', {
+    "jira-my-dashboards",
+    new ResourceTemplate("jira://dashboards/my", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'jira://dashboards/my',
-            name: 'Jira My Dashboards',
-            description: 'List dashboards owned by or shared with the current user.',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "jira://dashboards/my",
+            name: "Jira My Dashboards",
+            description:
+              "List dashboards owned by or shared with the current user.",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri: string | URL, params: Record<string, any>, extra: any) => {
       try {
         // Get config from context or environment
         const config = Config.getAtlassianConfigFromEnv();
-        const uriStr = typeof uri === 'string' ? uri : uri.href;
-        
+        const uriStr = typeof uri === "string" ? uri : uri.href;
+
         const { limit, offset } = Resources.extractPagingParams(params);
         const data = await getMyDashboards(config, offset, limit);
         return Resources.createStandardResource(
           uriStr,
           data.dashboards || [],
-          'dashboards',
+          "dashboards",
           dashboardListSchema,
           data.total || (data.dashboards ? data.dashboards.length : 0),
           limit,
@@ -87,7 +103,10 @@ export function registerDashboardResources(server: McpServer) {
           `${config.baseUrl}/jira/dashboards?filter=my`
         );
       } catch (error) {
-        logger.error(`Error handling resource request for jira-my-dashboards:`, error);
+        logger.error(
+          `Error handling resource request for jira-my-dashboards:`,
+          error
+        );
         throw error;
       }
     }
@@ -95,31 +114,31 @@ export function registerDashboardResources(server: McpServer) {
 
   // Dashboard details
   server.resource(
-    'jira-dashboard-details',
-    new ResourceTemplate('jira://dashboards/{dashboardId}', {
+    "jira-dashboard-details",
+    new ResourceTemplate("jira://dashboards/{dashboardId}", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'jira://dashboards/{dashboardId}',
-            name: 'Jira Dashboard Details',
-            description: 'Get details of a specific Jira dashboard.',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "jira://dashboards/{dashboardId}",
+            name: "Jira Dashboard Details",
+            description: "Get details of a specific Jira dashboard.",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri: string | URL, params: Record<string, any>, extra: any) => {
       try {
         // Get config from context or environment
         const config = Config.getAtlassianConfigFromEnv();
-        const uriStr = typeof uri === 'string' ? uri : uri.href;
-        
-        const dashboardId = params.dashboardId || (uriStr.split('/').pop());
+        const uriStr = typeof uri === "string" ? uri : uri.href;
+
+        const dashboardId = params.dashboardId || uriStr.split("/").pop();
         const dashboard = await getDashboardById(config, dashboardId);
         return Resources.createStandardResource(
           uriStr,
           [dashboard],
-          'dashboard',
+          "dashboard",
           dashboardSchema,
           1,
           1,
@@ -127,7 +146,10 @@ export function registerDashboardResources(server: McpServer) {
           `${config.baseUrl}/jira/dashboards/${dashboardId}`
         );
       } catch (error) {
-        logger.error(`Error handling resource request for jira-dashboard-details:`, error);
+        logger.error(
+          `Error handling resource request for jira-dashboard-details:`,
+          error
+        );
         throw error;
       }
     }
@@ -135,31 +157,32 @@ export function registerDashboardResources(server: McpServer) {
 
   // Dashboard gadgets
   server.resource(
-    'jira-dashboard-gadgets',
-    new ResourceTemplate('jira://dashboards/{dashboardId}/gadgets', {
+    "jira-dashboard-gadgets",
+    new ResourceTemplate("jira://dashboards/{dashboardId}/gadgets", {
       list: async (_extra) => ({
         resources: [
           {
-            uri: 'jira://dashboards/{dashboardId}/gadgets',
-            name: 'Jira Dashboard Gadgets',
-            description: 'List gadgets of a specific Jira dashboard.',
-            mimeType: 'application/json'
-          }
-        ]
-      })
+            uri: "jira://dashboards/{dashboardId}/gadgets",
+            name: "Jira Dashboard Gadgets",
+            description: "List gadgets of a specific Jira dashboard.",
+            mimeType: "application/json",
+          },
+        ],
+      }),
     }),
     async (uri: string | URL, params: Record<string, any>, extra: any) => {
       try {
         // Get config from context or environment
         const config = Config.getAtlassianConfigFromEnv();
-        const uriStr = typeof uri === 'string' ? uri : uri.href;
-        
-        const dashboardId = params.dashboardId || (uriStr.split('/')[uriStr.split('/').length - 2]);
+        const uriStr = typeof uri === "string" ? uri : uri.href;
+
+        const dashboardId =
+          params.dashboardId || uriStr.split("/")[uriStr.split("/").length - 2];
         const gadgets = await getDashboardGadgets(config, dashboardId);
         return Resources.createStandardResource(
           uriStr,
           gadgets,
-          'gadgets',
+          "gadgets",
           gadgetListSchema,
           gadgets.length,
           gadgets.length,
@@ -167,11 +190,14 @@ export function registerDashboardResources(server: McpServer) {
           `${config.baseUrl}/jira/dashboards/${dashboardId}`
         );
       } catch (error) {
-        logger.error(`Error handling resource request for jira-dashboard-gadgets:`, error);
+        logger.error(
+          `Error handling resource request for jira-dashboard-gadgets:`,
+          error
+        );
         throw error;
       }
     }
   );
 
-  logger.info('Jira dashboard resources registered successfully');
+  logger.info("Jira dashboard resources registered successfully");
 }

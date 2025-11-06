@@ -1,153 +1,204 @@
-import { AtlassianConfig } from './atlassian-api-base.js';
-import { callConfluenceApi } from './atlassian-api-base.js';
+import { AtlassianConfig } from "./atlassian-api-base.js";
+import { callConfluenceApi } from "./atlassian-api-base.js";
 
 // Get labels of a Confluence page (API v2, cursor-based)
-export async function getConfluencePageLabelsV2(config: AtlassianConfig, pageId: string, cursor?: string, limit: number = 25): Promise<any> {
+export async function getConfluencePageLabelsV2(
+  config: AtlassianConfig,
+  pageId: string,
+  cursor?: string,
+  limit: number = 25
+): Promise<any> {
   const params: Record<string, any> = { limit };
   if (cursor) params.cursor = cursor;
   return await callConfluenceApi<any>(
     config,
     `/api/v2/pages/${encodeURIComponent(pageId)}/labels`,
-    'GET',
+    "GET",
     null,
     params
   );
 }
 
 // Get attachments of a Confluence page (API v2, cursor-based)
-export async function getConfluencePageAttachmentsV2(config: AtlassianConfig, pageId: string, cursor?: string, limit: number = 25): Promise<any> {
+export async function getConfluencePageAttachmentsV2(
+  config: AtlassianConfig,
+  pageId: string,
+  cursor?: string,
+  limit: number = 25
+): Promise<any> {
   const params: Record<string, any> = { limit };
   if (cursor) params.cursor = cursor;
   return await callConfluenceApi<any>(
     config,
     `/api/v2/pages/${encodeURIComponent(pageId)}/attachments`,
-    'GET',
+    "GET",
     null,
     params
   );
 }
 
 // Get versions of a Confluence page (API v2, cursor-based)
-export async function getConfluencePageVersionsV2(config: AtlassianConfig, pageId: string, cursor?: string, limit: number = 25): Promise<any> {
+export async function getConfluencePageVersionsV2(
+  config: AtlassianConfig,
+  pageId: string,
+  cursor?: string,
+  limit: number = 25
+): Promise<any> {
   const params: Record<string, any> = { limit };
   if (cursor) params.cursor = cursor;
   return await callConfluenceApi<any>(
     config,
     `/api/v2/pages/${encodeURIComponent(pageId)}/versions`,
-    'GET',
+    "GET",
     null,
     params
   );
 }
 
 // Get list of Confluence pages (API v2, cursor-based)
-export async function getConfluencePagesV2(config: AtlassianConfig, cursor?: string, limit: number = 25): Promise<any> {
+export async function getConfluencePagesV2(
+  config: AtlassianConfig,
+  cursor?: string,
+  limit: number = 25
+): Promise<any> {
   const params: Record<string, any> = { limit };
   if (cursor) params.cursor = cursor;
   return await callConfluenceApi<any>(
     config,
     `/api/v2/pages`,
-    'GET',
+    "GET",
     null,
     params
   );
 }
 
 // Get Confluence page details (API v2, optionally with body)
-export async function getConfluencePageV2(config: AtlassianConfig, pageId: string, bodyFormat?: string): Promise<any> {
+export async function getConfluencePageV2(
+  config: AtlassianConfig,
+  pageId: string,
+  bodyFormat?: string
+): Promise<any> {
   const params: Record<string, any> = {};
   if (bodyFormat) {
-    params['body-format'] = bodyFormat;
+    params["body-format"] = bodyFormat;
   }
   return await callConfluenceApi<any>(
     config,
     `/api/v2/pages/${encodeURIComponent(pageId)}`,
-    'GET',
+    "GET",
     null,
     params
   );
 }
 
 // Get Confluence page body (API v2)
-export async function getConfluencePageBodyV2(config: AtlassianConfig, pageId: string, bodyFormat: string = 'storage'): Promise<any> {
+export async function getConfluencePageBodyV2(
+  config: AtlassianConfig,
+  pageId: string,
+  bodyFormat: string = "storage"
+): Promise<any> {
   return await callConfluenceApi<any>(
     config,
     `/api/v2/pages/${encodeURIComponent(pageId)}/body`,
-    'GET',
+    "GET",
     null,
-    { 'body-format': bodyFormat }
+    { "body-format": bodyFormat }
   );
 }
 
 // Get Confluence page ancestors (API v2)
-export async function getConfluencePageAncestorsV2(config: AtlassianConfig, pageId: string): Promise<any> {
+export async function getConfluencePageAncestorsV2(
+  config: AtlassianConfig,
+  pageId: string
+): Promise<any> {
   return await callConfluenceApi<any>(
     config,
     `/api/v2/pages/${encodeURIComponent(pageId)}/ancestors`,
-    'GET'
+    "GET"
   );
 }
 
 // Get list of Confluence spaces (API v2, cursor-based)
-export async function getConfluenceSpacesV2(config: AtlassianConfig, cursor?: string, limit: number = 25): Promise<any> {
+export async function getConfluenceSpacesV2(
+  config: AtlassianConfig,
+  cursor?: string,
+  limit: number = 25
+): Promise<any> {
   const params: Record<string, any> = { limit };
   if (cursor) params.cursor = cursor;
   return await callConfluenceApi<any>(
     config,
     `/api/v2/spaces`,
-    'GET',
+    "GET",
     null,
     params
   );
 }
 
 // Get Confluence space details (API v2)
-export async function getConfluenceSpaceV2(config: AtlassianConfig, spaceKey: string): Promise<any> {
+export async function getConfluenceSpaceV2(
+  config: AtlassianConfig,
+  spaceKey: string
+): Promise<any> {
   return await callConfluenceApi<any>(
     config,
     `/api/v2/spaces/${encodeURIComponent(spaceKey)}`,
-    'GET'
+    "GET"
   );
 }
 
 // Get children of a Confluence page (API v2)
-export async function getConfluencePageChildrenV2(config: AtlassianConfig, pageId: string): Promise<any> {
+export async function getConfluencePageChildrenV2(
+  config: AtlassianConfig,
+  pageId: string
+): Promise<any> {
   return await callConfluenceApi<any>(
     config,
     `/api/v2/pages/${encodeURIComponent(pageId)}/children`,
-    'GET'
+    "GET"
   );
 }
 
 // Get footer comments of a Confluence page (API v2)
-export async function getConfluencePageFooterCommentsV2(config: AtlassianConfig, pageId: string, params: { limit?: number, cursor?: string } = {}): Promise<any> {
+export async function getConfluencePageFooterCommentsV2(
+  config: AtlassianConfig,
+  pageId: string,
+  params: { limit?: number; cursor?: string } = {}
+): Promise<any> {
   return await callConfluenceApi<any>(
     config,
     `/api/v2/pages/${encodeURIComponent(pageId)}/footer-comments`,
-    'GET',
+    "GET",
     null,
     params
   );
 }
 
 // Get inline comments of a Confluence page (API v2)
-export async function getConfluencePageInlineCommentsV2(config: AtlassianConfig, pageId: string, params: { limit?: number, cursor?: string } = {}): Promise<any> {
+export async function getConfluencePageInlineCommentsV2(
+  config: AtlassianConfig,
+  pageId: string,
+  params: { limit?: number; cursor?: string } = {}
+): Promise<any> {
   return await callConfluenceApi<any>(
     config,
     `/api/v2/pages/${encodeURIComponent(pageId)}/inline-comments`,
-    'GET',
+    "GET",
     null,
     params
   );
 }
 
-// Get list of Confluence pages (API v2, hỗ trợ filter nâng cao)
-export async function getConfluencePagesWithFilters(config: AtlassianConfig, filters: Record<string, any> = {}): Promise<any> {
+// Get list of Confluence pages (API v2, supports advanced filtering)
+export async function getConfluencePagesWithFilters(
+  config: AtlassianConfig,
+  filters: Record<string, any> = {}
+): Promise<any> {
   return await callConfluenceApi<any>(
     config,
-    '/api/v2/pages',
-    'GET',
+    "/api/v2/pages",
+    "GET",
     null,
     filters
   );
-} 
+}

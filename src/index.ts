@@ -38,8 +38,8 @@ const registeredResources: Array<{ name: string; pattern: string }> = [];
 
 // Initialize MCP server with capabilities
 const server = new McpServer({
-  name: process.env.MCP_SERVER_NAME || "phuc-nt/mcp-atlassian-server",
-  version: process.env.MCP_SERVER_VERSION || "1.0.0",
+  name: process.env.MCP_SERVER_NAME || "@optibus/mcp-atlassian-server",
+  version: process.env.MCP_SERVER_VERSION || "3.0.1",
   capabilities: {
     resources: {}, // Declare support for resources capability
     tools: {},
@@ -162,16 +162,16 @@ async function startServer() {
     // Print startup info
     logger.info(
       `MCP Server Name: ${
-        process.env.MCP_SERVER_NAME || "phuc-nt/mcp-atlassian-server"
+        process.env.MCP_SERVER_NAME || "@optibus/mcp-atlassian-server"
       }`
     );
     logger.info(
-      `MCP Server Version: ${process.env.MCP_SERVER_VERSION || "1.0.0"}`
+      `MCP Server Version: ${process.env.MCP_SERVER_VERSION || "3.0.1"}`
     );
     logger.info(`Connected to Atlassian site: ${ATLASSIAN_SITE_NAME}`);
 
     logger.info("Registered tools:");
-    // Liệt kê tất cả các tool đã đăng ký
+    // List all registered tools
     logger.info(
       "- Jira issue tools: createIssue, updateIssue, transitionIssue, assignIssue"
     );

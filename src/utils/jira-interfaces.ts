@@ -18,10 +18,10 @@ export interface JiraUser {
   timeZone?: string;
   accountType: string;
   avatarUrls?: {
-    '48x48'?: string;
-    '24x24'?: string;
-    '16x16'?: string;
-    '32x32'?: string;
+    "48x48"?: string;
+    "24x24"?: string;
+    "16x16"?: string;
+    "32x32"?: string;
   };
   self: string;
 }
@@ -205,7 +205,7 @@ export interface JiraTransitionsResult {
 }
 
 /**
- * Định nghĩa thông tin tệp đính kèm
+ * Define attachment information
  */
 export interface JiraAttachment {
   id: string;
@@ -220,7 +220,7 @@ export interface JiraAttachment {
 }
 
 /**
- * Định nghĩa issue trong Jira
+ * Define Jira issue
  */
 export interface JiraIssue {
   id: string;
@@ -287,7 +287,7 @@ export interface JiraIssue {
 }
 
 /**
- * Định nghĩa kết quả tìm kiếm
+ * Define search results
  */
 export interface JiraSearchResult {
   startAt: number;
@@ -297,7 +297,7 @@ export interface JiraSearchResult {
 }
 
 /**
- * Định nghĩa tham số tìm kiếm
+ * Define search parameters
  */
 export interface JiraSearchParams {
   jql: string;
@@ -309,7 +309,7 @@ export interface JiraSearchParams {
 }
 
 /**
- * Định nghĩa tham số tạo issue
+ * Define issue creation parameters
  */
 export interface JiraCreateIssueParams {
   fields: {
@@ -324,4 +324,4 @@ export interface JiraCreateIssueParams {
     [key: string]: any;
   };
   update?: any;
-} 
+}

@@ -248,8 +248,8 @@ ATLASSIAN_API_TOKEN=your-api-token
 Optional:
 
 ```bash
-MCP_SERVER_NAME=phuc-nt/mcp-atlassian-server  # default
-MCP_SERVER_VERSION=1.0.0  # default
+MCP_SERVER_NAME=@optibus/mcp-atlassian-server  # default
+MCP_SERVER_VERSION=3.0.1  # default
 LOG_LEVEL=info  # debug, info, warn, error
 ```
 

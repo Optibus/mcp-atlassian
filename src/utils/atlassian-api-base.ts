@@ -29,14 +29,14 @@ export const createBasicHeaders = (email: string, apiToken: string) => {
   // Log headers for debugging
   logger.debug(
     "Creating headers with User-Agent:",
-    "MCP-Atlassian-Server/1.0.0"
+    "@optibus/mcp-atlassian-server/3.0.1"
   );
   return {
     Authorization: `Basic ${auth}`,
     "Content-Type": "application/json",
     Accept: "application/json",
     // Add User-Agent to help Cloudfront identify the request
-    "User-Agent": "MCP-Atlassian-Server/1.0.0",
+    "User-Agent": "@optibus/mcp-atlassian-server/3.0.1",
   };
 };
 
@@ -206,7 +206,7 @@ export async function callConfluenceApi<T>(
         new Error(responseText)
       );
     }
-    if (method === 'DELETE') {
+    if (method === "DELETE") {
       const text = await response.text();
       if (!text) return true as any;
       try {
@@ -304,4 +304,4 @@ export function adfToMarkdown(content: any): string {
     markdown += processNode(node);
   });
   return markdown;
-} 
+}
