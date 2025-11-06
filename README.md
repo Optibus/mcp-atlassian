@@ -56,7 +56,7 @@ Slap this bad boy into your Cursor MCP config (`~/.cursor/mcp.json` or via Setti
   "mcpServers": {
     "atlassian": {
       "command": "node",
-      "args": ["/path/to/your/mcp-atlassian-server/dist/index.js"],
+      "args": ["/path/to/your/mcp-atlassian/dist/index.js"],
       "env": {
         "ATLASSIAN_SITE_NAME": "yourdomain.atlassian.net",
         "ATLASSIAN_USER_EMAIL": "email@company.com",
