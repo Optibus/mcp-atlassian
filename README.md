@@ -33,28 +33,30 @@
 
 This is a **massively vibe-coded monster Frankenstein** based on [phuc-nt/mcp-atlassian-server](https://github.com/phuc-nt/mcp-atlassian-server).
 
-It works. Mostly. Sometimes. Usually when you need it to.
+It works. _Mostly_. Sometimes. Usually when you need it to. Probably.
 
-We've added features, fixed bugs, refactored things, un-refactored them, and then refactored them again differently. The logger was broken, then fixed, then optimized. The resources became tools. The tools are now the primary interface. Everything is fine. 🔥
+Features were added, bugs were fixed (and introduced), code was refactored, un-refactored, then refactored differently. The logger exploded, got duct-taped, then optimized. Resources became tools. Tools became the primary interface. The primary interface is now questioning its life choices. Everything is fine. 🔥
 
-**Tools available:** 32 (we counted, twice)
+**Tools available:** 32 (we counted, twice, got different answers both times)
 
-**Lines of code understood by the author:** Some of them
+**Lines of code that make sense:** Some
 
-**Probability this README is accurate:** High enough
+**Tests written:** You're looking at it
+
+**Production ready:** Define "production"
+
+**Probability this README is accurate:** Non-zero
 
 ## Setup for Cursor
 
-Add this to your Cursor MCP config file (`~/.cursor/config.json` or via Cursor Settings → MCP):
+Slap this bad boy into your Cursor MCP config (`~/.cursor/mcp.json` or via Settings → MCP):
 
 ```json
 {
   "mcpServers": {
     "atlassian": {
       "command": "node",
-      "args": [
-        "/Users/hinnerk.bruegmann/code/mcp-atlassian-server/dist/index.js"
-      ],
+      "args": ["/path/to/your/mcp-atlassian-server/dist/index.js"],
       "env": {
         "ATLASSIAN_SITE_NAME": "yourdomain.atlassian.net",
         "ATLASSIAN_USER_EMAIL": "email@company.com",
@@ -79,13 +81,13 @@ npm install
 npm run build
 ```
 
-Then reload Cursor's MCP servers.
+Then reload Cursor's MCP servers (or just restart Cursor because why not).
 
 ## What Can It Do?
 
-- **Confluence:** Read/write pages, list spaces, manage comments
-- **Jira:** Read/write issues, manage sprints, create filters, update dashboards
-- **Everything else:** Probably, we added a lot of tools
+- **Confluence:** Read/write pages, list spaces, manage comments (it's like a CMS but enterprise™)
+- **Jira:** Read/write issues, manage sprints, create filters, update dashboards (project management goes brrr)
+- **Everything else:** Probably? We added a lot of tools and lost track
 
 ## Documentation
 
@@ -97,8 +99,9 @@ Then reload Cursor's MCP servers.
 ## Credits
 
 - Original amazing work by [phuc-nt](https://github.com/phuc-nt/mcp-atlassian-server)
-- Vibe-coded modifications by Hinnerk with heavy Cursor assistance
-- Pain: Harold (hiding it)
+- Vibe-coded modifications by an anonymous developer with heavy Cursor assistance
+- Pain: Harold (hiding it like a champ)
+- Coffee consumed: Yes
 
 ## License
 
