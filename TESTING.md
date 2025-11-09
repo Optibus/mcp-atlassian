@@ -553,40 +553,315 @@ Try to access a project/space you don't have permission to view
 
 **⚠️ Creates real Jira issues**
 
-#### 4.1 Create Issue
+**IMPORTANT: Jira descriptions use Atlassian Document Format (ADF)**
 
-**Test:** Create a new test issue
+- Format: JSON object with structure `{type: "doc", version: 1, content: [...]}`
+- Block types: `paragraph`, `heading`, `bulletList`, `orderedList`, `codeBlock`
+- Inline formatting: `text` nodes with marks (`strong`, `em`, `code`, `link`)
+- Reference: https://developer.atlassian.com/cloud/jira/platform/apis/document/structure/
+
+#### 4.1 Create Issue with Simple ADF
+
+**Test:** Create a new test issue with simple description
 
 ```
 Use createIssue tool to create a new issue:
 - projectKey: [PROJECT_KEY]
 - summary: "Test issue created via MCP"
 - issueType: "Task"
-- description: "This is a test issue"
+- description: {
+    "type": "doc",
+    "version": 1,
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {"type": "text", "text": "This is a test issue created via MCP."}
+        ]
+      }
+    ]
+  }
 ```
 
 **Expected Result:**
 
 - New issue created successfully
 - Returns issue key (e.g., "PROJ-123")
-- Issue visible in Jira
+- Issue visible in Jira with description
 
-#### 4.2 Update Issue
+#### 4.2 Create Issue with Formatted ADF
 
-**Test:** Update the created issue
+**Test:** Create issue with rich formatting (headings, bold, lists, code)
+
+```
+Use createIssue tool:
+- projectKey: [PROJECT_KEY]
+- summary: "Test ADF formatting"
+- issueType: "Task"
+- description: {
+    "type": "doc",
+    "version": 1,
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {"level": 2},
+        "content": [{"type": "text", "text": "Problem"}]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {"type": "text", "text": "The API returns "},
+          {"type": "text", "text": "500 errors", "marks": [{"type": "strong"}]},
+          {"type": "text", "text": " when processing requests."}
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {"level": 3},
+        "content": [{"type": "text", "text": "Steps"}]
+      },
+      {
+        "type": "orderedList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "Send POST request"}]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "Check response"}]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {"type": "text", "text": "Status code: "},
+          {"type": "text", "text": "500", "marks": [{"type": "code"}]}
+        ]
+      }
+    ]
+  }
+```
+
+**Expected Result:**
+
+- Issue created successfully
+- Formatted description renders in Jira:
+  - ✅ "Problem" displays as h2 heading
+  - ✅ "500 errors" displays in bold
+  - ✅ "Steps" displays as h3 heading
+  - ✅ Numbered list displays correctly
+  - ✅ "500" displays as inline code
+
+#### 4.3 Update Issue with ADF
+
+**Test:** Update existing issue description with ADF
 
 ```
 Use updateIssue tool to update issue [ISSUE_KEY]:
 - summary: "Updated test issue"
-- description: "Updated description"
+- description: {
+    "type": "doc",
+    "version": 1,
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {"level": 2},
+        "content": [{"type": "text", "text": "Update"}]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {"type": "text", "text": "The issue has been "},
+          {"type": "text", "text": "resolved", "marks": [{"type": "em"}]}
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "Fixed bug"}]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "Added tests"}]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
 ```
 
 **Expected Result:**
 
 - Issue updated successfully
-- Changes visible in Jira
+- Changes visible in Jira with proper formatting
 
-#### 4.3 Transition Issue
+#### 4.4 Create Issue with Code Block
+
+**Test:** Test code block support in ADF
+
+```
+Use createIssue tool:
+- projectKey: [PROJECT_KEY]
+- summary: "Test code block"
+- description: {
+    "type": "doc",
+    "version": 1,
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [{"type": "text", "text": "Example command:"}]
+      },
+      {
+        "type": "codeBlock",
+        "attrs": {"language": "bash"},
+        "content": [
+          {"type": "text", "text": "curl -X POST https://api.example.com"}
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [{"type": "text", "text": "This should work."}]
+      }
+    ]
+  }
+```
+
+**Expected Result:**
+
+- Issue created with code block
+- Code displays with bash syntax highlighting in Jira
+
+#### 4.5 Test ADF Validation - Invalid Root Structure
+
+**Test:** Verify helpful error for invalid ADF root
+
+```
+Try createIssue with invalid ADF:
+- projectKey: [PROJECT_KEY]
+- summary: "Test validation"
+- description: {
+    "type": "document",
+    "version": 1,
+    "content": []
+  }
+```
+
+**Expected Result:**
+
+- ❌ Creation fails with validation error
+- Error message clearly states: "type must be 'doc', got 'document'"
+- Error explains expected structure: `{type: 'doc', version: 1, content: []}`
+
+#### 4.6 Test ADF Validation - Invalid Heading Level
+
+**Test:** Verify helpful error for invalid heading
+
+```
+Try createIssue with invalid heading level:
+- projectKey: [PROJECT_KEY]
+- summary: "Test validation"
+- description: {
+    "type": "doc",
+    "version": 1,
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {"level": 7},
+        "content": [{"type": "text", "text": "Invalid"}]
+      }
+    ]
+  }
+```
+
+**Expected Result:**
+
+- ❌ Creation fails with validation error
+- Error clearly states: "Heading level must be a number between 1 and 6, got: 7"
+- Error location specified: "content[0].attrs.level"
+
+#### 4.7 Test ADF Validation - Missing Required Fields
+
+**Test:** Verify helpful error for missing heading attrs
+
+```
+Try createIssue with missing heading attributes:
+- projectKey: [PROJECT_KEY]
+- summary: "Test validation"
+- description: {
+    "type": "doc",
+    "version": 1,
+    "content": [
+      {
+        "type": "heading",
+        "content": [{"type": "text", "text": "No attrs"}]
+      }
+    ]
+  }
+```
+
+**Expected Result:**
+
+- ❌ Creation fails with validation error
+- Error states: "Heading must have 'attrs' object"
+- Example provided in error message
+
+#### 4.8 Test ADF Validation - Invalid Mark Type
+
+**Test:** Verify helpful error for invalid mark
+
+```
+Try createIssue with invalid mark type:
+- projectKey: [PROJECT_KEY]
+- summary: "Test validation"
+- description: {
+    "type": "doc",
+    "version": 1,
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Underlined",
+            "marks": [{"type": "underline"}]
+          }
+        ]
+      }
+    ]
+  }
+```
+
+**Expected Result:**
+
+- ❌ Creation fails with validation error
+- Error states: "Invalid mark type 'underline'"
+- Lists valid mark types: 'strong' (bold), 'em' (italic), 'code', 'link'
+
+#### 4.9 Transition Issue
 
 **Test:** Change issue status
 
@@ -764,9 +1039,15 @@ Results:
    - Empty result sets: [✅/❌]
    - Permission denied (if applicable): [✅/❌]
 
-8. Jira Write Operations: [✅/❌]
-   - createIssue: [✅/❌]
-   - updateIssue: [✅/❌]
+8. Jira Write Operations (ADF Format): [✅/❌]
+   - createIssue (simple ADF): [✅/❌]
+   - createIssue (formatted ADF): [✅/❌]
+   - updateIssue (with ADF): [✅/❌]
+   - codeBlock support: [✅/❌]
+   - ADF validation (invalid root): [✅/❌]
+   - ADF validation (invalid heading): [✅/❌]
+   - ADF validation (missing fields): [✅/❌]
+   - ADF validation (invalid marks): [✅/❌]
    - transitionIssue: [✅/❌]
 
 9. Confluence Write Operations: [✅/❌]
@@ -798,10 +1079,24 @@ Architecture: Tools-only interface verified ✓
 - Check that the resource exists (project, issue, page, space)
 - Verify you have permission to access it
 
+### "ADF validation failed" (Jira descriptions)
+
+- **Jira descriptions REQUIRE Atlassian Document Format (ADF)** - JSON objects, not plain text
+- Must have exact structure: `{type: "doc", version: 1, content: [...]}`
+- Common mistakes:
+  - Wrong root type: Use `"type": "doc"` not `"type": "document"`
+  - Missing version: Always include `"version": 1`
+  - Heading without attrs: Headings need `"attrs": {"level": 1-6}`
+  - Invalid mark types: Use `strong`, `em`, `code`, `link` only (no `underline`, `strike`, etc.)
+  - Text without text property: Text nodes need `{"type": "text", "text": "content"}`
+- See test examples in section 4.1-4.8 for correct ADF structure
+- Reference: https://developer.atlassian.com/cloud/jira/platform/apis/document/structure/
+
 ### "Confluence content format error"
 
 - Remember Confluence requires storage format (XML-like HTML)
 - Use `<p>Content</p>` not plain text
+- Confluence uses storage format (strings), Jira uses ADF (JSON objects)
 
 ### "Cannot transition issue"
 

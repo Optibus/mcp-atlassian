@@ -47,7 +47,7 @@ export async function createIssue(
   config: AtlassianConfig,
   projectKey: string,
   summary: string,
-  description?: string,
+  description?: any, // ADF object or undefined
   issueType: string = "Task",
   additionalFields: Record<string, any> = {}
 ): Promise<any> {
@@ -97,22 +97,9 @@ export async function createIssue(
       },
     };
 
+    // Add validated ADF description directly if provided
     if (description && createmetaFields["description"]) {
-      data.fields.description = {
-        type: "doc",
-        version: 1,
-        content: [
-          {
-            type: "paragraph",
-            content: [
-              {
-                type: "text",
-                text: description,
-              },
-            ],
-          },
-        ],
-      };
+      data.fields.description = description; // Already validated ADF object
     }
 
     logger.debug(`Creating issue in project ${projectKey}`);
